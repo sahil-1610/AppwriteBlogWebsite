@@ -11,18 +11,17 @@ export class AuthService {
             .setEndpoint(conf.appwriteUrl)
             .setProject(conf.appwriteProjectId);
         this.account = new Account(this.client);
-            
     }
 
     async createAccount({email, password, name}) {
         try {
             const userAccount = await this.account.create(ID.unique(), email, password, name);
             if (userAccount) {
-                // call another method
-                return this.login({email, password});
-            } else {
-               return  userAccount;
+                // Login after successful account creation
+                const session = await this.login({email, password});
+                return { userAccount, session }; 
             }
+            return null;
         } catch (error) {
             throw error;
         }
@@ -30,7 +29,8 @@ export class AuthService {
 
     async login({email, password}) {
         try {
-            return await this.account.createEmailSession(email, password);
+            const session = await this.account.createEmailSession(email, password);
+            return session;
         } catch (error) {
             throw error;
         }
@@ -38,20 +38,21 @@ export class AuthService {
 
     async getCurrentUser() {
         try {
-            return await this.account.get();
+            const user = await this.account.get();
+            if (!user) return null;
+            return user;
         } catch (error) {
-            console.log("Appwrite serive :: getCurrentUser :: error", error);
+            console.log("Appwrite service :: getCurrentUser :: error", error);
+            return null;
         }
-
-        return null;
     }
 
     async logout() {
-
         try {
-            await this.account.deleteSessions();
+            return await this.account.deleteSessions();
         } catch (error) {
-            console.log("Appwrite serive :: logout :: error", error);
+            console.log("Appwrite service :: logout :: error", error);
+            throw error;
         }
     }
 }
